@@ -12,6 +12,7 @@ from common.const.http import POST, GET
 from common.drf.api import JMSModelViewSet
 from common.permissions import IsValidUser
 from common.utils.django import get_object_or_none
+from common.utils.timezone import dt_parser
 from common.drf.serializers import EmptySerializer
 from perms.models.asset_permission import AssetPermission, Asset
 from assets.models.user import SystemUser
@@ -25,8 +26,8 @@ from ..models import Ticket
 from ..permissions import IsAssignee
 
 
-class RequestAssetPermTicketViewSet(OrgQuerySetMixin, JMSModelViewSet):
-    model = Ticket
+class RequestAssetPermTicketViewSet(JMSModelViewSet):
+    queryset = Ticket.origin_objects.filter(type=Ticket.TYPE_REQUEST_ASSET_PERM)
     serializer_classes = {
         'default': serializers.RequestAssetPermTicketSerializer,
         'approve': EmptySerializer,
@@ -36,9 +37,6 @@ class RequestAssetPermTicketViewSet(OrgQuerySetMixin, JMSModelViewSet):
     permission_classes = (IsValidUser,)
     filter_fields = ['status', 'title', 'action', 'user_display', 'org_id']
     search_fields = ['user_display', 'title']
-
-    def get_queryset(self):
-        return super().get_queryset().filter(type=Ticket.TYPE_REQUEST_ASSET_PERM)
 
     def _check_can_set_action(self, instance, action):
         if instance.status == instance.STATUS_CLOSED:
@@ -118,8 +116,8 @@ class RequestAssetPermTicketViewSet(OrgQuerySetMixin, JMSModelViewSet):
             'comment': _('{} request assets, approved by {}').format(instance.user_display,
                                                                      instance.assignees_display)
         }
-        date_start = meta.get('date_start')
-        date_expired = meta.get('date_expired')
+        date_start = dt_parser(meta.get('date_start'))
+        date_expired = dt_parser(meta.get('date_expired'))
         if date_start:
             ap_kwargs['date_start'] = date_start
         if date_expired:

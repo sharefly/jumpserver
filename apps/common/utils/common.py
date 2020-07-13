@@ -11,6 +11,8 @@ import time
 import ipaddress
 import psutil
 
+from .timezone import dt_formater
+
 
 UUID_PATTERN = re.compile(r'\w{8}(-\w{4}){3}-\w{12}')
 ipip_db = None
@@ -246,3 +248,48 @@ def get_disk_usage():
     mount_points = [p.mountpoint for p in partitions]
     usages = {p: psutil.disk_usage(p) for p in mount_points}
     return usages
+
+
+def _transform_to_json_serializable(data, key):
+    mapper = {
+        uuid.UUID: lambda x: str(x),
+        datetime.datetime: lambda x: dt_formater(x)
+    }
+    if key not in data:
+        return
+    value = data[key]
+
+    handler = mapper.get(type(value))
+    if handler:
+        data[key] = handler(value)
+
+
+def enforce_to_json_serializable(data, fields):
+
+    for field in fields:
+        filo = [(data, field.split('.'))]
+
+        while filo:
+            curr_data, keys = filo.pop()
+            for i in range(len(keys)-1):
+                key = keys[i]
+                if isinstance(curr_data, dict):
+                    if key not in curr_data:
+                        break
+                    curr_data = curr_data[key]
+                elif isinstance(curr_data, list):
+                    for item in curr_data:
+                        filo.append((item, keys[i:]))
+                    break
+                else:
+                    break
+            else:
+                key = keys[-1]
+                if isinstance(curr_data, dict):
+                    _transform_to_json_serializable(curr_data, key)
+                elif isinstance(curr_data, list):
+                    for item in curr_data:
+                        if isinstance(item, dict):
+                            _transform_to_json_serializable(item, key)
+                else:
+                    continue

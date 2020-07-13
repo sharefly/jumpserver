@@ -47,6 +47,8 @@ class Ticket(OrgModelMixin, CommonModelMixin):
     status = models.CharField(choices=STATUS_CHOICES, max_length=16, default='open')
     action = models.CharField(choices=ACTION_CHOICES, max_length=16, default='', blank=True)
 
+    origin_objects = models.Manager()
+
     def __str__(self):
         return '{}: {}'.format(self.user_display, self.title)
 

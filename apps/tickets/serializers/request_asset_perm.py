@@ -1,10 +1,12 @@
 from itertools import chain
 
 from rest_framework import serializers
-from django.utils.translation import ugettext_lazy as _, ugettext as __
+from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 from django.urls import reverse
 from django.db.models import Q
 
+from common.utils.timezone import dt_parser, dt_formater
 from orgs.utils import tmp_to_root_org
 from orgs.models import Organization
 from assets.models.asset import Asset
@@ -135,6 +137,8 @@ class RequestAssetPermTicketSerializer(serializers.ModelSerializer):
     def _create_body(self, validated_data):
         meta = validated_data['meta']
         type = dict(Ticket.TYPE_CHOICES).get(validated_data.get('type', ''))
+        date_start = dt_parser(meta.get('date_start')).strftime(settings.DATETIME_DISPLAY_FORMAT)
+        date_expired = dt_parser(meta.get('date_expired')).strftime(settings.DATETIME_DISPLAY_FORMAT)
 
         validated_data['body'] = _('''
         Type: {type}<br>
@@ -150,8 +154,8 @@ class RequestAssetPermTicketSerializer(serializers.ModelSerializer):
             ips=', '.join(meta.get('ips', [])),
             hostname=meta.get('hostname', ''),
             system_user=meta.get('system_user', ''),
-            date_start=meta.get('date_start', ''),
-            date_expired=meta.get('date_expired', '')
+            date_start=date_start,
+            date_expired=date_expired
         )
 
     def create(self, validated_data):
@@ -176,11 +180,11 @@ class RequestAssetPermTicketSerializer(serializers.ModelSerializer):
         # 时间的转换，好烦😭，可能有更好的办法吧
         date_start = meta.get('date_start')
         if date_start:
-            meta['date_start'] = date_start.strftime('%Y-%m-%d %H:%M:%S%z')
+            meta['date_start'] = dt_formater(date_start)
 
         date_expired = meta.get('date_expired')
         if date_expired:
-            meta['date_expired'] = date_expired.strftime('%Y-%m-%d %H:%M:%S%z')
+            meta['date_expired'] = dt_formater(date_expired)
 
         # UUID 的转换
         confirmed_system_user = meta.get('confirmed_system_user')
