@@ -1,7 +1,7 @@
 from itertools import chain
 
 from rest_framework import serializers
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ugettext as __
 from django.urls import reverse
 from django.db.models import Q
 
@@ -132,12 +132,35 @@ class RequestAssetPermTicketSerializer(serializers.ModelSerializer):
         self._recommend_assets(data, instance)
         return data
 
+    def _create_body(self, validated_data):
+        meta = validated_data['meta']
+        type = dict(Ticket.TYPE_CHOICES).get(validated_data.get('type', ''))
+
+        validated_data['body'] = _('''
+        Type: {type}<br>
+        User: {username}<br>
+        Ip group: {ips}<br>
+        Hostname: {hostname}<br>
+        System user: {system_user}<br>
+        Date start: {date_start}<br>
+        Date expired: {date_expired}<br>
+        ''').format(
+            type=type,
+            username=validated_data.get('user', ''),
+            ips=', '.join(meta.get('ips', [])),
+            hostname=meta.get('hostname', ''),
+            system_user=meta.get('system_user', ''),
+            date_start=meta.get('date_start', ''),
+            date_expired=meta.get('date_expired', '')
+        )
+
     def create(self, validated_data):
         # `type` 与 `user` 用户不可提交，
         validated_data['type'] = self.Meta.model.TYPE_REQUEST_ASSET_PERM
         validated_data['user'] = self.context['request'].user
         # `confirmed` 相关字段只能审批人修改，所以创建时直接清理掉
         self._pop_confirmed_fields()
+        self._create_body(validated_data)
         return super().create(validated_data)
 
     def save(self, **kwargs):

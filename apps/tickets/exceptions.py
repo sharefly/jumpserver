@@ -21,7 +21,7 @@ class TicketClosed(JMSException):
     pass
 
 
-class TicketActionYet(JMSException):
+class TicketActionAlready(JMSException):
     pass
 
 

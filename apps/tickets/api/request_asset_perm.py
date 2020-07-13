@@ -17,7 +17,7 @@ from perms.models.asset_permission import AssetPermission, Asset
 from assets.models.user import SystemUser
 from ..exceptions import (
     ConfirmedAssetsChanged, ConfirmedSystemUserChanged,
-    TicketClosed, TicketActionYet, NotHaveConfirmedAssets,
+    TicketClosed, TicketActionAlready, NotHaveConfirmedAssets,
     NotHaveConfirmedSystemUser
 )
 from .. import serializers
@@ -45,7 +45,7 @@ class RequestAssetPermTicketViewSet(OrgQuerySetMixin, JMSModelViewSet):
             raise TicketClosed(detail=_('Ticket closed'))
         if instance.action == action:
             action_display = dict(instance.ACTION_CHOICES).get(action)
-            raise TicketActionYet(detail=_('Ticket has %s') % action_display)
+            raise TicketActionAlready(detail=_('Ticket has %s') % action_display)
 
     @action(detail=False, methods=[GET], permission_classes=[IsValidUser])
     def assignees(self, request: Request, *args, **kwargs):
